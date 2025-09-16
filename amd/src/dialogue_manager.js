@@ -31,6 +31,7 @@ import Fragment from 'core/fragment';
  * @copyright 2024 The Open University
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 export const DialogManager = class {
 
     /** @property {Object} current Tiny MCE editor instance */
@@ -52,9 +53,11 @@ export const DialogManager = class {
     /**
      * Displays a modal dialogue for managing embed question.
      *
+     * @param {String} qbankCmid - The course module id of the question bank.
+     * @param {boolean} isSwitchBank - Whether we are switching to another question bank.
      * @async
      */
-    displayDialogue = async() => {
+    displayDialogue = async(qbankCmid, isSwitchBank) => {
         if (typeof Modal.create !== "undefined") {
             this.currentModal = await Modal.create({
                 large: true,
@@ -81,12 +84,14 @@ export const DialogManager = class {
         );
 
         let existingCode = this.getEmbedCodeFromTextSelection(this.editor);
-        if (existingCode) {
+        if (existingCode && !isSwitchBank) {
             existingCode = existingCode.embedCode;
+        } else {
+            existingCode = '';
         }
         const dialogManager = this;
         Fragment.loadFragment('tiny_embedquestion', 'questionselector', getRelevantContextId(this.editor),
-            {contextId: getRelevantContextId(this.editor), embedCode: existingCode}).then(function(html, js) {
+            {contextId: getRelevantContextId(this.editor), embedCode: existingCode, qbankCmid: qbankCmid}).then(function(html, js) {
 
             Templates.replaceNodeContents(body, html, js);
             body.querySelector('#embedqform #id_submitbutton').addEventListener('click', dialogManager.getEmbedCode);
@@ -105,6 +110,9 @@ export const DialogManager = class {
         e.preventDefault();
         const iframeDescription = document.getElementById('id_iframedescription').value;
         const questionIdnumber = document.getElementById('id_questionidnumber').value;
+        const qbankIdnumber = JSON.parse(
+            document.querySelector('input[name="qbankidnumber"]').value)[document.getElementById('id_qbankcmid').value] ?? '';
+        const courseShortname = document.querySelector('input[name="courseshortname"]')?.value || '';
         const dialogManager = this;
         // Required value of questionidnumber.
         // Note that the form also validates this, and deals with displaying a message to the user.
@@ -120,7 +128,8 @@ export const DialogManager = class {
             return;
         }
 
-        dialogManager.getEmbedCodeCall(iframeDescription, questionIdnumber).then(function(embedCode) {
+        dialogManager.getEmbedCodeCall(iframeDescription, questionIdnumber, qbankIdnumber,
+                courseShortname).then(function(embedCode) {
             dialogManager.insertEmbedCode(embedCode);
             return dialogManager;
         }).catch(Notification.exception);
@@ -130,10 +139,12 @@ export const DialogManager = class {
      * Ajax call to get the embed code from back end.
      *
      * @param {String} iframeDescription - Description for the the embed code
-     * @param {Number} questionIdnumber - question id number.
+     * @param {String} questionIdnumber - question id number.
+     * @param {String} qbankIdnumber - course module id number.
+     * @param {String} courseShortname - short name of the course.
      * @returns {Promise}
      */
-    getEmbedCodeCall = (iframeDescription, questionIdnumber) => {
+    getEmbedCodeCall = (iframeDescription, questionIdnumber, qbankIdnumber, courseShortname) => {
         return fetchMany([{
             methodname: 'filter_embedquestion_get_embed_code',
             args: {
@@ -151,7 +162,9 @@ export const DialogManager = class {
                 generalfeedback: document.getElementById('id_generalfeedback')?.value || '',
                 rightanswer: document.getElementById('id_rightanswer')?.value || '',
                 history: document.getElementById('id_history')?.value || '',
-                forcedlanguage: document.getElementById('id_forcedlanguage')?.value || ''
+                forcedlanguage: document.getElementById('id_forcedlanguage')?.value || '',
+                courseshortname: courseShortname,
+                questionbankidnumber: qbankIdnumber,
             }
         }])[0];
     };

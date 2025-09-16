@@ -29,6 +29,9 @@ import {
     icon
 } from './common';
 import {DialogManager} from "./dialogue_manager";
+import {ModalEmbedQuestionQuestionBank, SELECTORS} from 'filter_embedquestion/modal_embedquestion_question_bank';
+import * as Notification from 'core/notification';
+let isEventsRegistered = false;
 
 /**
  * Get the setup function for the buttons.
@@ -61,10 +64,49 @@ export const getSetup = async() => {
  * @param {Object} buttonImage - The image to be displayed on the button.
  */
 const registerManagerCommand = async(editor, buttonText, buttonImage) => {
+    let currentDialog = null;
     const handleDialogManager = async() => {
-        const dialog = new DialogManager(editor);
-        await dialog.displayDialogue();
+        currentDialog = new DialogManager(editor);
+        await currentDialog.displayDialogue('', false);
+        currentDialog.currentModal.getModal().on('click', SELECTORS.SWITCH_TO_OTHER_BANK, showQuestionBankModal);
     };
+    /*
+    * Show the question bank modal when the user clicks on the switch to other bank button.
+    * This will destroy the current modal and create a new one for the question bank.
+    * @param {Event} e - The event triggered by the click.
+    * @returns {Promise}
+    */
+    const showQuestionBankModal = async(e) => {
+        e.preventDefault();
+        const contextId = document.querySelector('input[name="contextid"]').value;
+        const courseId = document.querySelector('input[name="courseid"]').value;
+        const bankCmId = document.getElementById('id_qbankcmid').value;
+        // Create a new instance of the modal to switch to the question bank.
+        ModalEmbedQuestionQuestionBank.create({
+            contextId,
+            courseId,
+            bankCmId,
+            title: '',
+            addOnPage: '',
+            large: true,
+            editor,
+        }).catch(Notification.exception);
+        if (currentDialog) {
+            currentDialog.currentModal.destroy();
+        }
+    };
+
+
+    // Just make sure we only register the events once.
+    if (!isEventsRegistered) {
+        isEventsRegistered = true;
+        document.addEventListener('tiny_embedquestion::displayDialog', function(e) {
+            currentDialog = new DialogManager(e.detail.editor);
+            currentDialog.displayDialogue(e.detail.bankCmid, true).catch(Notification.exception).finally(() => {
+                currentDialog.currentModal.getModal().on('click', SELECTORS.SWITCH_TO_OTHER_BANK, showQuestionBankModal);
+            });
+        });
+    }
 
     editor.ui.registry.addIcon(icon, buttonImage.html);
 

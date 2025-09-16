@@ -23,6 +23,7 @@
  */
 
 use filter_embedquestion\form\embed_options_form;
+use filter_embedquestion\utils;
 
 /**
  * Server side controller used by core Fragment javascript to return a moodle form html.
@@ -37,13 +38,18 @@ function tiny_embedquestion_output_fragment_questionselector(array $args): strin
     global $CFG;
     require_once($CFG->dirroot . '/filter/embedquestion/filter.php');
     $context = context::instance_by_id($args['contextId']);
-    $mform = new embed_options_form(null, ['context' => $context]);
+    $qbankcmid = $args['qbankCmid'];
+
+    $mform = new embed_options_form(null, ['context' => $context, 'qbankcmid' => $qbankcmid,
+            'embedcode' => $args['embedCode']]);
 
     $currentvalue = $args['embedCode'];
     if ($currentvalue && preg_match(filter_embedquestion::get_filter_regexp(), $currentvalue, $matches)) {
-
         [$embedid, $toform] = filter_embedquestion::parse_embed_code($matches[1]);
         if ($embedid !== null) {
+            $cmid = utils::get_qbank_by_idnumber($context->instanceid, $embedid->courseshortname, $embedid->questionbankidnumber);
+            $toform['courseshortname'] = $embedid->courseshortname;
+            $toform['qbankcmid'] = $cmid;
             $toform['questionidnumber'] = $embedid->questionidnumber;
             $toform['categoryidnumber'] = $embedid->categoryidnumber;
             // Decode iframedescription data to form.
@@ -53,6 +59,5 @@ function tiny_embedquestion_output_fragment_questionselector(array $args): strin
             $mform->set_data($toform);
         }
     }
-
     return $mform->render();
 }
