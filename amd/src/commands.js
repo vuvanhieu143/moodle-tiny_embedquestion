@@ -29,8 +29,12 @@ import {
     icon
 } from './common';
 import {DialogManager} from "./dialogue_manager";
-import {ModalEmbedQuestionQuestionBank, SELECTORS} from 'filter_embedquestion/modal_embedquestion_question_bank';
+import {ModalEmbedQuestionQuestionBank} from 'filter_embedquestion/modal_embedquestion_question_bank';
 import * as Notification from 'core/notification';
+const SELECTORS = {
+    SWITCH_TO_OTHER_BANK: 'button[data-action="switch-question-bank"]',
+};
+
 let isEventsRegistered = false;
 
 /**
@@ -100,7 +104,7 @@ const registerManagerCommand = async(editor, buttonText, buttonImage) => {
     // Just make sure we only register the events once.
     if (!isEventsRegistered) {
         isEventsRegistered = true;
-        document.addEventListener('tiny_embedquestion::displayDialog', function(e) {
+        document.addEventListener('filter_embedquestion:qbank_selected', function(e) {
             currentDialog = new DialogManager(e.detail.editor);
             currentDialog.displayDialogue(e.detail.bankCmid, true).catch(Notification.exception).finally(() => {
                 currentDialog.currentModal.getModal().on('click', SELECTORS.SWITCH_TO_OTHER_BANK, showQuestionBankModal);

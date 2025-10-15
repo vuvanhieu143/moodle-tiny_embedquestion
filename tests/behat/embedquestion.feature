@@ -46,7 +46,7 @@ Feature: Embed question in the Tiny editor
     And I set the field "id_questionidnumber" to "First question [test1]"
     And I click on "Embed question" "button" in the "Embedded question" "dialogue"
     And I switch to the "Description" TinyMCE editor iframe
-    Then I should see "{Q{qbank1/embed/test1|"
+    Then I should see "{Q{C1/qbank1/embed/test1|"
     And I should see "}Q}Test page description"
     And I switch to the main frame
     # Check that reopening the form sets the fields to the current question.

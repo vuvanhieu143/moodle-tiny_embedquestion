@@ -47,7 +47,11 @@ function tiny_embedquestion_output_fragment_questionselector(array $args): strin
     if ($currentvalue && preg_match(filter_embedquestion::get_filter_regexp(), $currentvalue, $matches)) {
         [$embedid, $toform] = filter_embedquestion::parse_embed_code($matches[1]);
         if ($embedid !== null) {
-            $cmid = utils::get_qbank_by_idnumber($context->instanceid, $embedid->courseshortname, $embedid->questionbankidnumber);
+            $courseid = $context->instanceid;
+            if ($embedid->courseshortname) {
+                $courseid = utils::get_courseid_by_course_shortname($embedid->courseshortname);
+            }
+            $cmid = utils::get_qbank_by_idnumber($courseid, $embedid->questionbankidnumber);
             $toform['courseshortname'] = $embedid->courseshortname;
             $toform['qbankcmid'] = $cmid;
             $toform['questionidnumber'] = $embedid->questionidnumber;

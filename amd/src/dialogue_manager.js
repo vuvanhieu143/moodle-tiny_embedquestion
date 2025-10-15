@@ -110,10 +110,12 @@ export const DialogManager = class {
         e.preventDefault();
         const iframeDescription = document.getElementById('id_iframedescription').value;
         const questionIdnumber = document.getElementById('id_questionidnumber').value;
-        const qbankIdnumber = JSON.parse(
-            document.querySelector('input[name="qbankidnumber"]').value)[document.getElementById('id_qbankcmid').value] ?? '';
-        const courseShortname = document.querySelector('input[name="courseshortname"]')?.value || '';
+        const cmId = document.getElementById('id_qbankcmid').value;
         const dialogManager = this;
+        // Required value of cmid.
+        if (!cmId) {
+            return;
+        }
         // Required value of questionidnumber.
         // Note that the form also validates this, and deals with displaying a message to the user.
         if (!questionIdnumber) {
@@ -128,8 +130,7 @@ export const DialogManager = class {
             return;
         }
 
-        dialogManager.getEmbedCodeCall(iframeDescription, questionIdnumber, qbankIdnumber,
-                courseShortname).then(function(embedCode) {
+        dialogManager.getEmbedCodeCall(iframeDescription, questionIdnumber, cmId).then(function(embedCode) {
             dialogManager.insertEmbedCode(embedCode);
             return dialogManager;
         }).catch(Notification.exception);
@@ -140,15 +141,14 @@ export const DialogManager = class {
      *
      * @param {String} iframeDescription - Description for the the embed code
      * @param {String} questionIdnumber - question id number.
-     * @param {String} qbankIdnumber - course module id number.
-     * @param {String} courseShortname - short name of the course.
+     * @param {String} cmId - course module id.
      * @returns {Promise}
      */
-    getEmbedCodeCall = (iframeDescription, questionIdnumber, qbankIdnumber, courseShortname) => {
+    getEmbedCodeCall = (iframeDescription, questionIdnumber, cmId) => {
         return fetchMany([{
             methodname: 'filter_embedquestion_get_embed_code',
             args: {
-                courseid: document.querySelector('input[name=courseid]').value,
+                cmid: cmId,
                 categoryidnumber: document.getElementById('id_categoryidnumber').value,
                 questionidnumber: questionIdnumber,
                 iframedescription: iframeDescription,
@@ -163,8 +163,6 @@ export const DialogManager = class {
                 rightanswer: document.getElementById('id_rightanswer')?.value || '',
                 history: document.getElementById('id_history')?.value || '',
                 forcedlanguage: document.getElementById('id_forcedlanguage')?.value || '',
-                courseshortname: courseShortname,
-                questionbankidnumber: qbankIdnumber,
             }
         }])[0];
     };
